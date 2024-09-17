@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/libdns/libdns"
@@ -47,7 +49,7 @@ type Provider struct {
 func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record, error) {
 
 	ndReq := &NamedropRequest{
-		Domain: zone,
+		Domain: zoneToDomain(zone),
 		Token:  p.Token,
 	}
 
@@ -63,18 +65,18 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 
 // AppendRecords adds records to the zone. It returns the records that were added.
 func (p *Provider) AppendRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	return p.mutateRequest(zone, "/create-records", records)
+	return p.mutateRequest(zoneToDomain(zone), "/create-records", records)
 }
 
 // SetRecords sets the records in the zone, either by updating existing records or creating new ones.
 // It returns the updated records.
 func (p *Provider) SetRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	return p.mutateRequest(zone, "/set-records", records)
+	return p.mutateRequest(zoneToDomain(zone), "/set-records", records)
 }
 
 // DeleteRecords deletes the records from the zone. It returns the records that were deleted.
 func (p *Provider) DeleteRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	return p.mutateRequest(zone, "/delete-records", records)
+	return p.mutateRequest(zoneToDomain(zone), "/delete-records", records)
 }
 
 func (p *Provider) getServerUri() string {
@@ -95,7 +97,7 @@ func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record)
 	ndRecs := libdnsRecordsToNamedropRecords(records)
 
 	ndReq := &NamedropRequest{
-		Domain:  zone,
+		Domain:  zoneToDomain(zone),
 		Token:   p.Token,
 		Records: ndRecs,
 	}
@@ -176,6 +178,18 @@ func namedropRecordsToLibdnsRecords(ndRecs []*NamedropRecord) []libdns.Record {
 	}
 
 	return records
+}
+
+func zoneToDomain(zone string) string {
+	if strings.HasSuffix(zone, ".") {
+		return zone[:len(zone)-1]
+	}
+	return zone
+}
+
+func printJson(data interface{}) {
+	d, _ := json.MarshalIndent(data, "", "  ")
+	fmt.Fprintln(os.Stderr, string(d))
 }
 
 // Interface guards
