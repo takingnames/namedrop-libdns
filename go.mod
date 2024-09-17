@@ -1,4 +1,4 @@
-module github.com/libdns/namedrop
+module github.com/takingnames/namedrop-libdns
 
 go 1.18
 
