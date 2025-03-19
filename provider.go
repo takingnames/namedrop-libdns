@@ -35,7 +35,7 @@ type NamedropRecord struct {
 	Type     string `json:"type,omitempty"`
 	Value    string `json:"value,omitempty"`
 	Ttl      int    `json:"ttl,omitempty"`
-	Priority int    `json:"priority,omitempty"`
+	Priority uint   `json:"priority,omitempty"`
 }
 
 // Provider facilitates DNS record manipulation with NameDrop.
