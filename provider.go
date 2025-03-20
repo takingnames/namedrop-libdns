@@ -18,25 +18,9 @@ import (
 	"github.com/takingnames/namedrop-go"
 )
 
-type NamedropRequest struct {
-	Domain  string            `json:"domain,omitempty"`
-	Host    string            `json:"host,omitempty"`
-	Token   string            `json:"token,omitempty"`
-	Records []*NamedropRecord `json:"records,omitempty"`
-}
-
 type NamedropResponse struct {
-	Type    string            `json:"type,omitempty"`
-	Records []*NamedropRecord `json:"records,omitempty"`
-}
-
-type NamedropRecord struct {
-	Domain   string `json:"domain,omitempty"`
-	Host     string `json:"host,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Value    string `json:"value,omitempty"`
-	Ttl      int    `json:"ttl,omitempty"`
-	Priority uint   `json:"priority,omitempty"`
+	Type    string             `json:"type,omitempty"`
+	Records []*namedrop.Record `json:"records,omitempty"`
 }
 
 // Provider facilitates DNS record manipulation with NameDrop.
@@ -49,7 +33,7 @@ type Provider struct {
 // GetRecords lists all the records in the zone.
 func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record, error) {
 
-	ndReq := &NamedropRequest{
+	ndReq := &namedrop.RecordsRequest{
 		Domain: zoneToDomain(zone),
 		Token:  p.TokenData.AccessToken,
 	}
@@ -114,7 +98,7 @@ func (p *Provider) getClient() *http.Client {
 func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record) ([]libdns.Record, error) {
 	ndRecs := libdnsRecordsToNamedropRecords(records)
 
-	ndReq := &NamedropRequest{
+	ndReq := &namedrop.RecordsRequest{
 		Domain:  zoneToDomain(zone),
 		Token:   p.TokenData.AccessToken,
 		Records: ndRecs,
@@ -128,7 +112,7 @@ func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record)
 	return namedropRecordsToLibdnsRecords(ndRes.Records), nil
 }
 
-func (p *Provider) namedropRequest(endpoint string, req *NamedropRequest) (*NamedropResponse, error) {
+func (p *Provider) namedropRequest(endpoint string, req *namedrop.RecordsRequest) (*NamedropResponse, error) {
 
 	client := p.getClient()
 
@@ -164,11 +148,11 @@ func (p *Provider) namedropRequest(endpoint string, req *NamedropRequest) (*Name
 	return ndRes, nil
 }
 
-func libdnsRecordsToNamedropRecords(records []libdns.Record) []*NamedropRecord {
+func libdnsRecordsToNamedropRecords(records []libdns.Record) []*namedrop.Record {
 
-	ndRecs := []*NamedropRecord{}
+	ndRecs := []*namedrop.Record{}
 	for _, rec := range records {
-		ndRec := &NamedropRecord{
+		ndRec := &namedrop.Record{
 			Host:  rec.Name,
 			Type:  rec.Type,
 			Value: rec.Value,
@@ -181,7 +165,7 @@ func libdnsRecordsToNamedropRecords(records []libdns.Record) []*NamedropRecord {
 	return ndRecs
 }
 
-func namedropRecordsToLibdnsRecords(ndRecs []*NamedropRecord) []libdns.Record {
+func namedropRecordsToLibdnsRecords(ndRecs []*namedrop.Record) []libdns.Record {
 	records := []libdns.Record{}
 
 	for _, ndRec := range ndRecs {
@@ -189,7 +173,7 @@ func namedropRecordsToLibdnsRecords(ndRecs []*NamedropRecord) []libdns.Record {
 			Name:     ndRec.Host,
 			Type:     ndRec.Type,
 			Value:    ndRec.Value,
-			TTL:      time.Second * time.Duration(ndRec.Ttl),
+			TTL:      time.Second * time.Duration(ndRec.TTL),
 			Priority: ndRec.Priority,
 		}
 		records = append(records, record)
