@@ -50,7 +50,9 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 
 // AppendRecords adds records to the zone. It returns the records that were added.
 func (p *Provider) AppendRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	return p.mutateRequest(zoneToDomain(zone), "/create-records", records)
+	// TODO: might need to implement append-records for NameDrop
+	//return p.mutateRequest(zoneToDomain(zone), "/create-records", records)
+	return p.mutateRequest(zoneToDomain(zone), "/set-records", records)
 }
 
 // SetRecords sets the records in the zone, either by updating existing records or creating new ones.
@@ -109,7 +111,12 @@ func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record)
 		return nil, err
 	}
 
-	return namedropRecordsToLibdnsRecords(ndRes.Records), nil
+	fmt.Println(ndRes)
+	printJson(ndRes)
+
+	// TODO: might need to return actual created records for NameDrop
+	return records, nil
+	//return namedropRecordsToLibdnsRecords(ndRes.Records), nil
 }
 
 func (p *Provider) namedropRequest(endpoint string, req *namedrop.RecordsRequest) (*NamedropResponse, error) {
