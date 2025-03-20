@@ -111,9 +111,6 @@ func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record)
 		return nil, err
 	}
 
-	fmt.Println(ndRes)
-	printJson(ndRes)
-
 	// TODO: might need to return actual created records for NameDrop
 	return records, nil
 	//return namedropRecordsToLibdnsRecords(ndRes.Records), nil
