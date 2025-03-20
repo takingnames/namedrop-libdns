@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/libdns/libdns"
+	"github.com/takingnames/namedrop-go"
 )
 
 type NamedropRequest struct {
@@ -40,8 +41,8 @@ type NamedropRecord struct {
 
 // Provider facilitates DNS record manipulation with NameDrop.
 type Provider struct {
-	ServerUri  string `json:"server_uri,omitempty"`
-	Token      string `json:"token,omitempty"`
+	ServerUri  string                  `json:"server_uri,omitempty"`
+	TokenData  *namedrop.TokenResponse `json:"token_data,omitempty"`
 	httpClient *http.Client
 }
 
@@ -50,7 +51,7 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 
 	ndReq := &NamedropRequest{
 		Domain: zoneToDomain(zone),
-		Token:  p.Token,
+		Token:  p.TokenData.AccessToken,
 	}
 
 	ndRes, err := p.namedropRequest("/get-records", ndReq)
@@ -79,6 +80,23 @@ func (p *Provider) DeleteRecords(ctx context.Context, zone string, records []lib
 	return p.mutateRequest(zoneToDomain(zone), "/delete-records", records)
 }
 
+func (p *Provider) ListZones(ctx context.Context) ([]libdns.Zone, error) {
+	zones := []libdns.Zone{}
+
+	for _, perm := range p.TokenData.Permissions {
+		domain := perm.Domain
+		if perm.Host != "" {
+			domain = perm.Host + "." + perm.Domain
+		}
+		zone := libdns.Zone{
+			Name: domain,
+		}
+		zones = append(zones, zone)
+	}
+
+	return zones, nil
+}
+
 func (p *Provider) getServerUri() string {
 	if p.ServerUri == "" {
 		p.ServerUri = "https://takingnames.io/namedrop"
@@ -98,7 +116,7 @@ func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record)
 
 	ndReq := &NamedropRequest{
 		Domain:  zoneToDomain(zone),
-		Token:   p.Token,
+		Token:   p.TokenData.AccessToken,
 		Records: ndRecs,
 	}
 
@@ -198,4 +216,5 @@ var (
 	_ libdns.RecordAppender = (*Provider)(nil)
 	_ libdns.RecordSetter   = (*Provider)(nil)
 	_ libdns.RecordDeleter  = (*Provider)(nil)
+	_ libdns.ZoneLister     = (*Provider)(nil)
 )
