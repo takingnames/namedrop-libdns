@@ -70,14 +70,17 @@ func (p *Provider) ListZones(ctx context.Context) ([]libdns.Zone, error) {
 	zones := []libdns.Zone{}
 
 	for _, perm := range p.TokenData.Permissions {
-		domain := perm.Domain
-		if perm.Host != "" {
-			domain = perm.Host + "." + perm.Domain
+		// skip duplicates
+		if !listHasZone(zones, perm.Domain) {
+			domain := perm.Domain
+			if perm.Host != "" {
+				domain = perm.Host + "." + perm.Domain
+			}
+			zone := libdns.Zone{
+				Name: domain,
+			}
+			zones = append(zones, zone)
 		}
-		zone := libdns.Zone{
-			Name: domain,
-		}
-		zones = append(zones, zone)
 	}
 
 	return zones, nil
@@ -106,7 +109,7 @@ func (p *Provider) mutateRequest(zone, endpoint string, records []libdns.Record)
 		Records: ndRecs,
 	}
 
-	ndRes, err := p.namedropRequest(endpoint, ndReq)
+	_, err := p.namedropRequest(endpoint, ndReq)
 	if err != nil {
 		return nil, err
 	}
@@ -191,6 +194,15 @@ func zoneToDomain(zone string) string {
 		return zone[:len(zone)-1]
 	}
 	return zone
+}
+
+func listHasZone(list []libdns.Zone, zoneName string) bool {
+	for _, zone := range list {
+		if zone.Name == zoneName {
+			return true
+		}
+	}
+	return false
 }
 
 func printJson(data interface{}) {
